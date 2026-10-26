@@ -173,6 +173,11 @@ textarea:focus-visible {
   padding-top: 32px;
 }
 
+.review-error {
+  color: #a32121;
+  font-size: 14px;
+}
+
 .review-list {
   border-top: 1px solid #e5e5e5;
 }

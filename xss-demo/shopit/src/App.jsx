@@ -1,35 +1,64 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
-
-const initialReviews = [
-  { name: 'Aarav Mehta', rating: 5, comment: 'Fast and reliable for work and study.' },
-  { name: 'Priya Shah', rating: 4, comment: 'Good display and battery life. Great value.' },
-  { name: 'Rohan Das', rating: 4, comment: 'The laptop feels solid and runs smoothly.' },
-]
 
 function App() {
   const [quantity, setQuantity] = useState(1)
   const [cartCount, setCartCount] = useState(0)
-  const [reviews, setReviews] = useState(initialReviews)
+  const [reviews, setReviews] = useState([])
   const [reviewName, setReviewName] = useState('')
   const [reviewRating, setReviewRating] = useState('5')
   const [reviewComment, setReviewComment] = useState('')
+  const [reviewError, setReviewError] = useState('')
 
-  function submitReview(event) {
+  useEffect(() => {
+    async function loadReviews() {
+      try {
+        const response = await fetch('/api/reviews')
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || 'Could not load reviews.')
+        }
+        setReviews(data)
+      } catch {
+        setReviewError('Could not load reviews. Please try again later.')
+      }
+    }
+
+    loadReviews()
+  }, [])
+
+  async function submitReview(event) {
     event.preventDefault()
-    setReviews([
-      { name: reviewName.trim(), rating: Number(reviewRating), comment: reviewComment.trim() },
-      ...reviews,
-    ])
-    setReviewName('')
-    setReviewRating('5')
-    setReviewComment('')
+    setReviewError('')
+
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: reviewName.trim(),
+          rating: Number(reviewRating),
+          comment: reviewComment.trim(),
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not submit review.')
+      }
+
+      setReviews((currentReviews) => [data, ...currentReviews])
+      setReviewName('')
+      setReviewRating('5')
+      setReviewComment('')
+    } catch (error) {
+      setReviewError(error.message || 'Could not submit review. Please try again.')
+    }
   }
 
   return (
     <div className="page">
       <header className="site-header">
-        <a className="brand" href="#top">ShopShield</a>
+        <a className="brand" href="#top">ShopIt</a>
         <div className="cart" aria-live="polite">Cart ({cartCount})</div>
       </header>
 
@@ -38,7 +67,7 @@ function App() {
           <div className="product-image-wrap">
             <img
               className="product-image"
-              src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1000&q=80"
+              src="/laptop.png"
               alt="Open silver laptop on a desk"
             />
           </div>
@@ -80,9 +109,10 @@ function App() {
 
         <section className="reviews" aria-labelledby="reviews-heading">
           <h2 id="reviews-heading">Customer reviews</h2>
+          {reviewError && <p className="review-error" role="alert">{reviewError}</p>}
           <div className="review-list">
-            {reviews.map((review, index) => (
-              <article className="review" key={`${review.name}-${index}`}>
+            {reviews.map((review) => (
+              <article className="review" key={review.id}>
                 <div className="review-heading">
                   <h3>{review.name}</h3>
                   <span>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)} ({review.rating}/5)</span>
