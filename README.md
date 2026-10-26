@@ -1,6 +1,6 @@
 # CyberSec Vulnerabilities Demo
 
-Educational cybersecurity demonstrations for local use with dummy data.
+Cybersecurity demonstrations for local use with dummy data.
 
 - [SQL Injection – Authentication Bypass (Variant 1)](sql-injection-demo/README.md): FastAPI + PostgreSQL demo with vulnerable and secure login forms.
 
