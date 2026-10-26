@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SQL Injection – Authentication Bypass (Variant 1)</title>
+    <link rel="stylesheet" href="{{ url_for('stylesheet') }}">
+</head>
+<body>
+    <h1>SQL Injection – Authentication Bypass (Variant 1)</h1>
+    <p class="note">Local educational demo. Intentionally vulnerable</p>
+    <p>Accounts: <code>admin / admin123</code> and <code>student / student123</code>.</p>
+    <p>Try username <code>' OR 1=1 --</code> with any password in both forms.</p>
+
+    <div class="forms">
+        <section>
+            <h2>Vulnerable login</h2>
+            <p>SQL built with Python f-strings.</p>
+            <form method="post" action="/login/vulnerable">
+                <label for="vulnerable-username">Username</label>
+                <input id="vulnerable-username" name="username" type="text" autocomplete="off">
+                <label for="vulnerable-password">Password</label>
+                <input id="vulnerable-password" name="password" type="password" autocomplete="off">
+                <button type="submit">Log in (vulnerable)</button>
+            </form>
+            {% if mode == 'vulnerable' %}
+            <p role="status" class="{{ 'success' if success else 'failure' }}">{{ message }}</p>
+            {% endif %}
+        </section>
+
+        <section>
+            <h2>Secure login</h2>
+            <p>SQL uses parameterized queries.</p>
+            <form method="post" action="/login/secure">
+                <label for="secure-username">Username</label>
+                <input id="secure-username" name="username" type="text" autocomplete="off">
+                <label for="secure-password">Password</label>
+                <input id="secure-password" name="password" type="password" autocomplete="off">
+                <button type="submit">Log in (secure)</button>
+            </form>
+            {% if mode == 'secure' %}
+            <p role="status" class="{{ 'success' if success else 'failure' }}">{{ message }}</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <section>
+        <h2>Constructed SQL: vulnerable implementation</h2>
+        {% if query %}
+        <pre>{{ query }}</pre>
+        {% else %}
+        <p class="note">Submit the vulnerable form to see its SQL query here.</p>
+        {% endif %}
+    </section>
+    
+</body>
+</html>
