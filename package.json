@@ -1,0 +1,21 @@
+{
+  "name": "labassignment",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test_csrf.js",
+    "bank": "node bank-server/index.js",
+    "attacker": "node attacker-server/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^5.3.0",
+    "express-session": "^1.19.0"
+  }
+}
