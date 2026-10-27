@@ -19,7 +19,7 @@
 npm install
 npm start
 ```
-- **Bank App (Victim):** `http://localhost:3000` (Login: `alice` / `password123`)
+- **Bank App (Victim):** `http://localhost:3000` (Alice's account, Balance: $5,000)
 - **Attacker Site:** `http://localhost:4000`
 
 ---
@@ -27,11 +27,11 @@ npm start
 ## Table 2 Requirements (Viva & Video Summary)
 
 ### (a) Vulnerable Implementation
-- **File:** `bank-server/index.js` (Route: `POST /transfer`)
+- **File:** `server.js` (Route: `POST /transfer`)
 - **Flaw:** The server executes fund transfers relying solely on the session cookie (`bank_session_id`). It never checks if the request was intentionally initiated by the user.
 
 ### (b) Working Exploit
-- **File:** `attacker-server/views/index.html`
+- **File:** `server.js` (Attacker Route on Port 4000)
 - **Payload:** A hidden HTML form that auto-submits via JavaScript upon page load:
   ```html
   <form id="f" action="http://localhost:3000/transfer" method="POST">

@@ -5,9 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test_csrf.js",
-    "bank": "node bank-server/index.js",
-    "attacker": "node attacker-server/index.js"
+    "test": "node test_csrf.js"
   },
   "keywords": [],
   "author": "",
