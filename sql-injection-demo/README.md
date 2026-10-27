@@ -1,6 +1,6 @@
 # SQL Injection – UNION-Based Product Lookup
 
-A small local FastAPI + PostgreSQL demo with one HTML page and separate CSS. The vulnerable lookup can expose dummy usernames and passwords through a UNION query. The secure lookup rejects the same input. No login system or sessions.
+A small local FastAPI + PostgreSQL demo with one HTML page and separate CSS. The vulnerable lookup can expose usernames and passwords through a UNION query. The secure lookup rejects the same input.
 
 ## Setup
 
@@ -22,15 +22,13 @@ Skip database creation if it already exists. Create/seed the tables (also run th
 psql -U adithnr -d sql_injection_demo -v ON_ERROR_STOP=1 -f schema.sql
 ```
 
-The schema can be rerun and contains only dummy products and accounts.
+
 
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 cp .env.example .env
-# Set your existing PostgreSQL role and connection settings in .env.
-# Skip the copy above if .env already contains your settings.
 set -a
 source .env
 set +a
@@ -71,12 +69,5 @@ query = "SELECT name, description FROM products WHERE id = %s"
 cursor.execute(query, (int(product_id),))
 ```
 
-The same payload is rejected as an invalid ID before SQL executes. Parameterization also keeps accepted values separate from SQL syntax; values cannot add a UNION clause. The displayed `%s` query is the template, not an interpolated query. See [Psycopg's parameter documentation](https://www.psycopg.org/psycopg3/docs/basic/params.html).
+The same payload is rejected as an invalid ID before SQL executes. Parameterization also keeps accepted values separate from SQL syntax; values cannot add a UNION clause. The displayed `%s` query is the template, not an interpolated query.
 
-## Notes
-
-- Keep this intentionally vulnerable app local and use only dummy data.
-- Plain-text passwords exist solely to demonstrate the leak. Production systems require password hashing.
-- Input allow-list validation supplements parameterization; it does not replace it.
-- Restricted database roles reduce exposure. The role used in this demo can read both tables so the leak can be demonstrated; real product lookups should not have access to credentials.
-- Error handling is intentionally minimal: database or SQL errors produce a server error, with details in the terminal. If a lookup fails unexpectedly, check PostgreSQL is running, load `.env`, and apply `schema.sql`. Production apps should handle errors without exposing database details.
