@@ -1,101 +1,82 @@
-# SQL Injection – Authentication Bypass (Variant 1)
+# SQL Injection – UNION-Based Product Lookup
 
-A local FastAPI + PostgreSQL demonstration comparing unsafe f-string SQL with parameterized SQL. Requires Python 3.10+ and a running PostgreSQL server with `psql` available. Use only these dummy accounts and keep the app bound to `127.0.0.1`.
+A small local FastAPI + PostgreSQL demo with one HTML page and separate CSS. The vulnerable lookup can expose dummy usernames and passwords through a UNION query. The secure lookup rejects the same input. No login system or sessions.
 
-From the repository root, enter this demo folder first:
+## Setup
+
+Requires Python 3.10+ and a running PostgreSQL server. From the repository root:
 
 ```sh
 cd sql-injection-demo
 ```
 
-## Set up PostgreSQL
-
-Install PostgreSQL using your operating system's installer/package manager and start its server. Connect as a database administrator (these commands use your existing `adithnr` role):
+Create the database using your existing PostgreSQL role (`adithnr` here):
 
 ```sh
-psql -U adithnr -d postgres
+psql -U adithnr -d postgres -c 'CREATE DATABASE sql_injection_demo;'
 ```
 
-In `psql`, create the database using your existing role:
-
-```sql
-CREATE DATABASE sql_injection_demo;
-\q
-```
-
-From the project directory, create and seed the table as the administrator:
+Skip database creation if it already exists. Create/seed the tables (also run this when upgrading from the old demo):
 
 ```sh
 psql -U adithnr -d sql_injection_demo -v ON_ERROR_STOP=1 -f schema.sql
 ```
 
-`schema.sql` inserts `admin / admin123` and `student / student123`. It can be rerun to restore the dummy passwords. No new database role or password is created. In `.env`, set `PGUSER` to the existing role used above (the example uses `adithnr`). Leave `PGPASSWORD` empty only if your PostgreSQL configuration allows it; otherwise enter that role's existing password.
-
-## Install and run
+The schema can be rerun and contains only dummy products and accounts.
 
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 cp .env.example .env
-# Edit .env if you chose different database connection settings.
+# Set your existing PostgreSQL role and connection settings in .env.
+# Skip the copy above if .env already contains your settings.
 set -a
 source .env
 set +a
 python main.py
 ```
 
-These commands use a POSIX shell (such as bash or zsh). `.env` is loaded into the shell explicitly; no dotenv dependency is needed. Open [http://127.0.0.1:8000](http://127.0.0.1:8000). The built-in startup binds Uvicorn to `127.0.0.1:8000`. Stop it with Ctrl+C.
+Commands use bash/zsh. `PGPASSWORD` may be empty if your PostgreSQL configuration permits it; otherwise use your existing role's password. Open [http://127.0.0.1:8000](http://127.0.0.1:8000). The app binds to `127.0.0.1` only. Open this URL rather than the HTML file or Live Server: FastAPI serves the plain HTML/CSS files and handles the lookup endpoints. A small inline JavaScript block submits each form and displays the JSON response. No Jinja or Request object is used.
 
-Open the FastAPI URL above, not `index.html` directly or through an editor's Live Server. The HTML contains Jinja template instructions (`{% if ... %}`) that FastAPI renders before sending the page to the browser. Opening the file directly shows those instructions and does not run the Python login endpoints.
+## Try it manually
 
-If login reports a database error, confirm PostgreSQL is running (`pg_isready -h 127.0.0.1 -p 5432`), complete the database setup above, and load `.env` in the same terminal before starting the app.
+Enter `1`, `2`, or `3` in either form to retrieve a product. Enter `999` to see no matching products.
 
-## Manually compare the two logins
-
-| Username | Password | Vulnerable | Secure |
-| --- | --- | --- | --- |
-| `admin` | `admin123` | Success | Success |
-| `student` | `student123` | Success | Success |
-| `admin` | `wrong` | Failure | Failure |
-| `' OR 1=1 --` | `anything` | Success | Failure |
-
-Enter this exact payload into the username field:
-
-```text
-' OR 1=1 --
-```
-
-With password `anything`, `POST /login/vulnerable` constructs and displays:
+Enter this exact input in both forms:
 
 ```sql
-SELECT id, username FROM users WHERE username = '' OR 1=1 --' AND password = 'anything'
+0 UNION SELECT username, password FROM users --
 ```
 
-The first quote closes the username string. `OR 1=1` makes the condition true for every row, and `--` comments out the remaining password check. Any supplied password works with this payload. The endpoint reports success when a row is returned; which account appears first is not guaranteed.
-
-The vulnerable code inserts input directly into SQL:
+The vulnerable endpoint, `/products/vulnerable`, uses an unsafe Python f-string:
 
 ```python
-query = (
-    f"SELECT id, username FROM users WHERE username = '{username}' "
-    f"AND password = '{password}'"
-)
+query = f"SELECT name, description FROM products WHERE id = {product_id}"
 cursor.execute(query)
 ```
 
-`POST /login/secure` instead uses:
+The resulting query is:
 
-```python
-query = "SELECT id, username FROM users WHERE username = %s AND password = %s"
-cursor.execute(query, (username, password))
+```sql
+SELECT name, description FROM products WHERE id = 0 UNION SELECT username, password FROM users --
 ```
 
-Psycopg sends the values separately from the SQL command. The payload is treated as a literal username, so it cannot alter the condition and matches no dummy account. Keep `%s` placeholders unquoted and pass values as the second `execute()` argument. See [Psycopg's parameter documentation](https://www.psycopg.org/psycopg3/docs/basic/params.html).
+There is no product with ID 0. `UNION` combines the original results with rows from `users`. Both SELECT statements return two text columns, so the dummy usernames and passwords appear under the Name and Description headings. Row order is not guaranteed.
 
-## Other mitigations
+The secure endpoint, `/products/secure`, checks that the ID contains digits and then uses a parameterized query:
 
-- Allow-list validation can restrict usernames to an expected format; it supplements parameterization.
-- Least-privilege database roles limit damage. Outside this isolated local setup, use a restricted application role with only the required permissions, such as `SELECT` on `users`.
-- Safe error handling avoids exposing database exceptions or connection details. Both endpoints return generic errors; the vulnerable query is deliberately displayed for learning and may include the dummy password.
-- Production applications require password hashing with a suitable password hashing algorithm such as Argon2id, instead of storing or comparing plain-text passwords. This demo adds no sessions, JWT, or OAuth.
+```python
+query = "SELECT name, description FROM products WHERE id = %s"
+cursor.execute(query, (int(product_id),))
+```
+
+The same payload is rejected as an invalid ID before SQL executes. Parameterization also keeps accepted values separate from SQL syntax; values cannot add a UNION clause. The displayed `%s` query is the template, not an interpolated query. See [Psycopg's parameter documentation](https://www.psycopg.org/psycopg3/docs/basic/params.html).
+
+## Notes
+
+- Keep this intentionally vulnerable app local and use only dummy data.
+- Plain-text passwords exist solely to demonstrate the leak. Production systems require password hashing.
+- Input allow-list validation supplements parameterization; it does not replace it.
+- Restricted database roles reduce exposure. The role used in this demo can read both tables so the leak can be demonstrated; real product lookups should not have access to credentials.
+- Error handling is intentionally minimal: database or SQL errors produce a server error, with details in the terminal. If a lookup fails unexpectedly, check PostgreSQL is running, load `.env`, and apply `schema.sql`. Production apps should handle errors without exposing database details.
