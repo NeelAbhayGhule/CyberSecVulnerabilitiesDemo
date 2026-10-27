@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CSRF Variant 2: POST-Based Forged Action
 
 **Course:** Cyber Security (IT-30001) | IIIT Allahabad  
@@ -141,3 +142,12 @@ node test_csrf.js
 - The demo configures `SameSite=None` and `Secure=true` and includes a localhost-specific connection workaround. Verify browser cookie behavior before recording. This workaround is for the local demonstration and is not a production security configuration.
 - CSRF tokens should not be exposed to untrusted origins or displayed publicly in a production application.
 - This project is an educational demonstration. Testing should be limited to the group's own application.
+=======
+# CyberSec Vulnerabilities Demo
+
+Cybersecurity demonstrations for local use with dummy data.
+
+- [SQL Injection – UNION-Based Data Extraction ](sql-injection-demo/README.md): FastAPI + PostgreSQL product lookup with vulnerable and secure forms on one HTML page.
+
+The application files are in `sql-injection-demo/`. Follow that folder’s README for setup and startup.
+>>>>>>> upstream/main

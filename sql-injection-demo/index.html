@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>UNION-Based SQL Injection Demo</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <h1>Product lookup</h1>
+    <p class="note">UNION-based SQL injection demo.</p>
+    <p>Find a product by ID: <strong>1</strong> = Notebook, <strong>2</strong> = Pen, <strong>3</strong> = Backpack.</p>
+    <p>Try this same input in both forms:</p>
+    <pre>0 UNION SELECT username, password FROM users --</pre>
+
+    <div class="forms">
+        <section>
+            <h2>Vulnerable lookup</h2>
+            <p>Input is inserted directly into SQL.</p>
+            <form method="post" action="/products/vulnerable" data-mode="vulnerable">
+                <label for="vulnerable-id">Product ID</label>
+                <input id="vulnerable-id" name="product_id" type="text" placeholder="1" required>
+                <button type="submit">Find product (vulnerable)</button>
+            </form>
+        </section>
+        <section>
+            <h2>Secure lookup</h2>
+            <p>Validates the ID and uses a parameterized query.</p>
+            <form method="post" action="/products/secure" data-mode="secure">
+                <label for="secure-id">Product ID</label>
+                <input id="secure-id" name="product_id" type="text" placeholder="1" required>
+                <button type="submit">Find product (secure)</button>
+            </form>
+        </section>
+    </div>
+
+    <section id="results" hidden>
+        <h2 id="results-title">Results</h2>
+        <p id="message" role="status"></p>
+        <table id="result-table" hidden>
+            <thead><tr><th>Name</th><th>Description</th></tr></thead>
+            <tbody id="rows"></tbody>
+        </table>
+        <h2>SQL query</h2>
+        <pre id="query"></pre>
+        <p class="note">The vulnerable query can expose credentials under the product headings. The secure query passes values separately using %s.</p>
+    </section>
+
+    <script>
+        const results = document.getElementById("results");
+        const message = document.getElementById("message");
+        const rows = document.getElementById("rows");
+        const query = document.getElementById("query");
+        const table = document.getElementById("result-table");
+
+        document.querySelectorAll("form").forEach(form => {
+            form.addEventListener("submit", async event => {
+                event.preventDefault();
+                results.hidden = false;
+                document.getElementById("results-title").textContent = "Results — " + form.dataset.mode + " lookup";
+                message.textContent = "Loading...";
+                rows.replaceChildren();
+                query.textContent = "";
+                table.hidden = true;
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: "POST",
+                        body: new URLSearchParams(new FormData(form))
+                    });
+                    if (!response.ok) throw new Error("Lookup failed");
+                    const data = await response.json();
+                    message.textContent = data.message;
+                    query.textContent = data.query;
+                    data.rows.forEach(row => {
+                        const tr = document.createElement("tr");
+                        row.forEach(value => {
+                            const td = document.createElement("td");
+                            td.textContent = value;
+                            tr.appendChild(td);
+                        });
+                        rows.appendChild(tr);
+                    });
+                    table.hidden = data.rows.length === 0;
+                } catch {
+                    message.textContent = "Lookup failed. Check the input, database setup, and FastAPI terminal.";
+                }
+            });
+        });
+    </script>
+</body>
+</html>
