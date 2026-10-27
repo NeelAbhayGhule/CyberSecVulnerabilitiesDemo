@@ -24,6 +24,49 @@
   font-size: 14px;
 }
 
+.page-mode-nav {
+  display: flex;
+  gap: 14px;
+  font-size: 14px;
+}
+
+.page-mode-nav a {
+  color: #444;
+  text-decoration: none;
+}
+
+.page-mode-nav a[aria-current='page'] {
+  color: #111;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.educational-warning {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #d2a44a;
+  background: #fff9e9;
+}
+
+.educational-warning h2 {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.educational-warning p:last-child {
+  margin-bottom: 0;
+}
+
+.sandbox-demo {
+  display: block;
+  width: 100%;
+  min-height: 270px;
+  margin: 16px 0;
+  border: 1px solid #bbb;
+  background: #fff;
+}
+
 .product {
   display: grid;
   grid-template-columns: 1fr 1fr;
