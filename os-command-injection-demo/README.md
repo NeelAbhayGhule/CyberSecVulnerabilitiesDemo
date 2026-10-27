@@ -107,6 +107,8 @@ Expected behavior:
 
 - Vulnerable app (`8001`): page reports command dispatched; callback appears in OOB listener log.
 - Secure app (`8002`): payload is rejected; no callback is recorded.
+<img width="1312" height="1199" alt="image" src="https://github.com/user-attachments/assets/046564f6-676a-4f02-bf58-8b36dcc08f31" />
+
 
 ---
 
